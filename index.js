@@ -5,21 +5,21 @@ import axios from "axios";
 const persons = [
   {
     age: "23",
-    name: "Midu",
+    name: "Midudev",
     phone: "034-1234567",
     street: "Calle Frontend",
     city: "Barcelona",
     id: "3d5946550-3436-11e4-37bavcgsj",
   },
   {
-    name: "Youseff",
+    name: "Joseph",
     phone: "044-1234567",
     street: "Avenida Fullstack",
     city: "Mataro",
     id: "3d5946550-3436-11e4-334asdacas",
   },
   {
-    name: "Itzi",
+    name: "Platzi",
     street: "Pasaje Testin",
     city: "Ibiza",
     id: "3d5946550-3436-11e4-754dfvdf",
@@ -71,16 +71,16 @@ const resolvers = {
   Query: {
     personCount: () => persons.length,
     allPersons: async (root, args) => {
-      const { data: personsFromRestApi } = await axios.get(
-        "http://localhost:3000/persons"
-      );
-      console.log(personsFromRestApi);
-      if (!args.phone) return personsFromRestApi;
+      // const { data: personsFromRestApi } = await axios.get(
+      //   "http://localhost:3000/persons"
+      // );
+      // console.log(personsFromRestApi);
+      if (!args.phone) return persons;
 
       const byPhone = (person) =>
         args.phone === "YES" ? person.phone : !person.phone;
 
-      return personsFromRestApi.filter(byPhone);
+      return persons.filter(byPhone);
     },
     //arg - argumentos o parametros que le pasamos
     findPerson: (root, args) => {
