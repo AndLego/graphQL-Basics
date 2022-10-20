@@ -1,15 +1,10 @@
 import mongoose from "mongoose";
-import password from "./password";
+import password from "./password.js";
 
-const MONGODB_URI = `mongodb+srv://admin-andres:${password}@cluster0.kcz9p.mongodb.net/?retryWrites=true&w=majority`;
+const MONGODB_URI = `mongodb+srv://andlego:${password}@graphql.2c9mv0m.mongodb.net/?retryWrites=true&w=majority`;
 
 mongoose
-  .connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false,
-    useCreateIndex: true,
-  })
+  .connect(MONGODB_URI)
   .then(() => {
     console.log("connected to MongoDB");
   })
