@@ -169,16 +169,12 @@ const resolvers = {
       // if (!currentUser) throw new AuthenticationError("not authenticated");
 
       const person = await Person.findOne({ name: args.name });
-      const personID = person._id
 
       if (person) {
         return await Person.findByIdAndRemove(person._id);
       }
 
-      return {
-        person,
-        personID
-      };
+      return person
     },
   },
   //genera datos con nuestro calculos
