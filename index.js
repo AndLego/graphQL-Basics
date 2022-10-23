@@ -8,7 +8,12 @@ import "./db.js";
 import Person from "./models/person.js";
 import User from "./models/user.js";
 import jwt from "jsonwebtoken";
-import JWT_SECRET from "./jwt_secret.js";
+
+import * as dotev from "dotenv"
+
+dotev.config()
+
+const JWT_SECRET = process.env.JWT_SECRET
 
 //describir los datos de nuestro server
 //con grapghql descibimos el tipo de dato y ademas describir las peticiones
@@ -174,7 +179,7 @@ const resolvers = {
         return await Person.findByIdAndRemove(person._id);
       }
 
-      return person
+      return person;
     },
   },
   //genera datos con nuestro calculos
@@ -190,6 +195,8 @@ const resolvers = {
     },
   },
 };
+
+
 
 // se crea el server
 
@@ -208,6 +215,6 @@ const server = new ApolloServer({
   },
 });
 
-server.listen().then(({ url }) => {
+server.listen({ port: process.env.PORT || 4000 }).then(({ url }) => {
   console.log(`Server ready at ${url}`);
 });

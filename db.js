@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
-import password from "./password.js";
+import * as dotev from "dotenv"
 
-const MONGODB_URI = `mongodb+srv://andlego:${password}@graphql.2c9mv0m.mongodb.net/?retryWrites=true&w=majority`;
+dotev.config()
+
+const MONGODB_URI = process.env.DATABASE_URL
 
 mongoose
   .connect(MONGODB_URI)
