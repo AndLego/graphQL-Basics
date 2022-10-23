@@ -1,6 +1,14 @@
-import { ApolloServer, gql, UserInputError } from "apollo-server";
+import {
+  ApolloServer,
+  AuthenticationError,
+  gql,
+  UserInputError,
+} from "apollo-server";
 import "./db.js";
 import Person from "./models/person.js";
+import User from "./models/user.js";
+import jwt from "jsonwebtoken";
+import JWT_SECRET from "./jwt_secret.js";
 
 //describir los datos de nuestro server
 //con grapghql descibimos el tipo de dato y ademas describir las peticiones
@@ -24,10 +32,26 @@ const typeDefinitions = gql`
     id: ID!
   }
 
+  type User {
+    username: String!
+    friends: [Person]!
+    id: ID!
+  }
+
+  type Token {
+    value: String!
+  }
+
   type Query {
     personCount: Int!
     allPersons(phone: YesNo): [Person]!
     findPerson(name: String!): Person
+    me: User
+  }
+
+  type RemovePerson {
+    name: String
+    id: ID
   }
 
   type Mutation {
@@ -38,6 +62,10 @@ const typeDefinitions = gql`
       city: String!
     ): Person
     editNumber(name: String!, phone: String!): Person
+    createUser(username: String!): User
+    login(username: String!, password: String!): Token
+    addAsFriend(name: String!): User
+    deleteUser(name: String!): RemovePerson
   }
 `;
 
@@ -57,12 +85,20 @@ const resolvers = {
       const { name } = args;
       return Person.findOne({ name });
     },
+    me: (root, args, context) => {
+      return context.currentUser;
+    },
   },
   Mutation: {
-    addPerson: async (root, args) => {
+    addPerson: async (root, args, context) => {
+      const { currentUser } = context;
+      if (!currentUser) throw new AuthenticationError("not authenticated");
+
       const person = new Person({ ...args });
       try {
         await person.save();
+        currentUser.friends = currentUser.friends.concat(person);
+        await currentUser.save();
       } catch (error) {
         throw new UserInputError(error.message, {
           invalidArgs: args,
@@ -85,6 +121,65 @@ const resolvers = {
       }
       return person;
     },
+    createUser: (root, args) => {
+      const user = new User({ username: args.username });
+
+      return user.save().catch((error) => {
+        throw new UserInputError(error.message, {
+          invalidArgs: args,
+        });
+      });
+    },
+    login: async (root, args) => {
+      const user = await User.findOne({ username: args.username });
+
+      if (!user || args.password !== "secret") {
+        throw new UserInputError("wrong credentials");
+      }
+
+      const userForToken = {
+        username: user.username,
+        id: user._id,
+      };
+
+      return {
+        value: jwt.sign(userForToken, JWT_SECRET),
+      };
+    },
+    addAsFriend: async (root, args, context) => {
+      const { currentUser } = context;
+      if (!currentUser) throw new AuthenticationError("not authenticated");
+
+      const person = await Person.findOne({ name: args.name });
+
+      const nonFriendlyAlready = (person) =>
+        !currentUser.friends.map((p) => p._id).includes(person._id);
+
+      if (nonFriendlyAlready(person)) {
+        currentUser.friends = currentUser.friends.concat(person);
+        await currentUser.save();
+      } else {
+        throw new UserInputError("already friend");
+      }
+
+      return currentUser;
+    },
+    deleteUser: async (root, args, context) => {
+      // const { currentUser } = context;
+      // if (!currentUser) throw new AuthenticationError("not authenticated");
+
+      const person = await Person.findOne({ name: args.name });
+      const personID = person._id
+
+      if (person) {
+        return await Person.findByIdAndRemove(person._id);
+      }
+
+      return {
+        person,
+        personID
+      };
+    },
   },
   //genera datos con nuestro calculos
   Person: {
@@ -105,6 +200,16 @@ const resolvers = {
 const server = new ApolloServer({
   typeDefs: typeDefinitions, //o lo dejamos en typeDefs al igual que la descripcion
   resolvers,
+  //context nos permite saber si un usuario esta log in
+  context: async ({ req }) => {
+    const auth = req ? req.headers.authorization : null;
+    if (auth && auth.toLowerCase().startsWith("bearer ")) {
+      const token = auth.substring(7);
+      const { id } = jwt.verify(token, JWT_SECRET);
+      const currentUser = await User.findById(id).populate("friends");
+      return { currentUser };
+    }
+  },
 });
 
 server.listen().then(({ url }) => {

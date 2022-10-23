@@ -2,3 +2,4 @@
 node_modules/
 
 password.js
+jwt_secret.js
