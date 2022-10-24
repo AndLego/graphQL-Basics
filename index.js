@@ -9,11 +9,11 @@ import Person from "./models/person.js";
 import User from "./models/user.js";
 import jwt from "jsonwebtoken";
 
-import * as dotev from "dotenv"
+import * as dotev from "dotenv";
 
-dotev.config()
+dotev.config();
 
-const JWT_SECRET = process.env.JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET;
 
 //describir los datos de nuestro server
 //con grapghql descibimos el tipo de dato y ademas describir las peticiones
@@ -39,6 +39,7 @@ const typeDefinitions = gql`
 
   type User {
     username: String!
+    password: String!
     friends: [Person]!
     id: ID!
   }
@@ -51,10 +52,16 @@ const typeDefinitions = gql`
     personCount: Int!
     allPersons(phone: YesNo): [Person]!
     findPerson(name: String!): Person
+    allUser: [User]!
     me: User
   }
 
   type RemovePerson {
+    name: String
+    id: ID
+  }
+
+  type RemoveUser {
     name: String
     id: ID
   }
@@ -67,10 +74,11 @@ const typeDefinitions = gql`
       city: String!
     ): Person
     editNumber(name: String!, phone: String!): Person
-    createUser(username: String!): User
+    createUser(username: String!, password: String!): User!
     login(username: String!, password: String!): Token
     addAsFriend(name: String!): User
     deleteUser(name: String!): RemovePerson
+    deleteAcc(name: String!): RemoveUser
   }
 `;
 
@@ -79,6 +87,9 @@ const typeDefinitions = gql`
 const resolvers = {
   Query: {
     personCount: () => Person.collection.countDocuments(),
+    allUser: async (root, args) => {
+      return User.find({});
+    },
     allPersons: async (root, args) => {
       if (!args.phone) return Person.find({});
 
@@ -127,7 +138,9 @@ const resolvers = {
       return person;
     },
     createUser: (root, args) => {
-      const user = new User({ username: args.username });
+      const user = new User({
+        ...args,
+      });
 
       return user.save().catch((error) => {
         throw new UserInputError(error.message, {
@@ -138,12 +151,13 @@ const resolvers = {
     login: async (root, args) => {
       const user = await User.findOne({ username: args.username });
 
-      if (!user || args.password !== "secret") {
+      if (!user || args.password !== user.password) {
         throw new UserInputError("wrong credentials");
       }
 
       const userForToken = {
         username: user.username,
+        password: user.password,
         id: user._id,
       };
 
@@ -181,6 +195,15 @@ const resolvers = {
 
       return person;
     },
+    deleteAcc: async (root, args, context) => {
+      const person = await User.findOne({ name: args.name });
+
+      if (person) {
+        return await User.findByIdAndRemove(person._id);
+      }
+
+      return person;
+    },
   },
   //genera datos con nuestro calculos
   Person: {
@@ -195,8 +218,6 @@ const resolvers = {
     },
   },
 };
-
-
 
 // se crea el server
 

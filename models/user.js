@@ -7,6 +7,12 @@ const schema = new mongoose.Schema({
     unique: true,
     minLenth: 3,
   },
+  password: {
+    type: String,
+    required: true,
+    unique: true,
+    minLenth: 4,
+  },
   friends: [
     {
       ref: "Person",
