@@ -107,8 +107,8 @@ const resolvers = {
   },
   Mutation: {
     addPerson: async (root, args, context) => {
-      const { currentUser } = context;
-      if (!currentUser) throw new AuthenticationError("not authenticated");
+     // const { currentUser } = context;
+     // if (!currentUser) throw new AuthenticationError("not authenticated");
 
       const person = new Person({ ...args });
       try {
